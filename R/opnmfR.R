@@ -10,7 +10,7 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
-  plot(nn$W[,1], nn$W[,2], col=iris$Species)
+  plot(nn$W[,1], nn$W[,2], col=iris$Species, xlab="Factor 1", ylab="Factor 2")
   
   # now using rcpp
   cat("opnmfRcpp ")
@@ -19,9 +19,10 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
-  plot(nn$W[,1], nn$W[,2], col=iris$Species)
   
-  heatmap(nn$W)
+  par(mfrow=c(1,2))
+  image(nn$W, main="W")
+  image(nn$H, main="H")
 }
 
 #' @export
@@ -113,7 +114,6 @@ opnmfR_postprocess <- function(X, W) {
   mse <- norm(X-(W %*% H), "F")
   
   return(list(W=W, H=H, mse=mse))
-  
 }
 
 #' @export
@@ -152,16 +152,16 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=
   names(mse) <- rs
   names(nn) <- rs
   
-  sel <- which(diff(sapply(mse, function(xx) xx$orig)) > diff(sapply(mse, function(xx) xx$perm)))
+  mseorig <- sapply(mse, function(xx) xx$orig)
+  mseperm <- sapply(mse, function(xx) xx$perm)
+  mseorig <- (mseorig-min(mseorig)) / (max(mseorig)-min(mseorig))
+  mseperm <- (mseperm-min(mseperm)) / (max(mseperm)-min(mseperm))
+  
+  sel <- which(diff(mseorig) > diff(mseperm))
   if(length(sel)>1) sel <- sel
   selr <- rs[sel]
   
   if(plots) {
-    mseorig <- sapply(mse, function(xx) xx$orig)
-    mseperm <- sapply(mse, function(xx) xx$perm)
-    mseorig <- (mseorig-min(mseorig)) / (max(mseorig)-min(mseorig))
-    mseperm <- (mseperm-min(mseperm)) / (max(mseperm)-min(mseperm))
-    
     maxi <- max(c(mseorig, mseperm))
     mini <- min(c(mseorig, mseperm))
     
@@ -169,7 +169,7 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=
     points(rs, mseorig, type='b', pch=16)
     points(rs, mseperm, type='b', pch=17, lty=2)
     points(selr, mseorig[sel], cex=2, pch=1, lwd=2, col="red")
-    legend("topright", legend = c("Original","Random"), pch=16:17)
+    legend("topright", legend = c("Orig.","Perm."), pch=16:17)
     title(main="Permutation based rank selection", sub=paste("Selected rank = ", selr))
   }
   
