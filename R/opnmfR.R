@@ -42,7 +42,7 @@ opnmfRcpp <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16
 }
 
 #' @export
-opnmfR <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16,...) {
+opnmfR <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16, use.gpu=FALSE, ...) {
   # mem=FALSE is faster for large data
   start_time <- Sys.time()
   
@@ -56,11 +56,19 @@ opnmfR <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16,..
   
   W <- W0
   if(!memsave) { XX <- X %*% t(X) }
-    
+  
+
+  if(use.gpu) {
+     library(gpuR)
+     X <- gpuMatrix(X)
+     W <- gpuMatrix(W)
+     if(!memsave) XX <- gpuMatrix(XX)
+  }
+ 
   pbar <- txtProgressBar(min=0, max=max.iter, style=1)
   for(iter in 1:max.iter) {
     Wold <- W
-    
+
     # two "types" of update rules
     # "simplified" update rule using XXW
     if(!memsave) XXW <- XX %*% W
@@ -71,18 +79,24 @@ opnmfR <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16,..
     # these are the "original" update rules
     #if(!memsave) W <- W * (XX %*% W) / (W %*% (t(W) %*% XX %*% W))
     #else W <- W * (X %*% (t(X) %*% W)) / (W %*% ((t(W) %*% X) %*% (t(X) %*% W))) 
-    
-    W[W < eps] <- eps
-    W <- W / norm(W,"2") # spectral norm
-    
-    setTxtProgressBar(pbar, iter)
+   
+    if(!use.gpu) {
+      W[W < eps] <- eps
+      W <- W / norm(W,"2") # spectral norm
+    } else {
+      n2 <- svd(t(W) %*% W, 1, 1)
+      n2 <- sqrt(as.vector(n2$d)[1])
+      W <- W / n2
+    }
     
     diffW <- norm(Wold-W, "F") / norm(Wold, "F")
+    setTxtProgressBar(pbar, iter)
     if(diffW < tol) break
   }
   close(pbar)
-  
-  
+ 
+  if(use.gpu) W <- as.matrix(W)
+ 
   post <- opnmfR_postprocess(X, W)
   
   end_time <- Sys.time()
