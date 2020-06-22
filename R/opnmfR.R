@@ -120,8 +120,11 @@ opnmfR_mse <- function(X, W, H) {
 }
 
 #' @export
-opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, ...) {
+opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=NA, ...) {
   start_time <- Sys.time()
+  
+  if(is.na(seed)) seed <- sample(1:10^6, 1)
+  set.seed(seed)
   
   Xperm <- apply(X,2,sample) # permute the rows in each column
   nn <- list()
@@ -150,7 +153,7 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, ...) 
   mini <- min(unlist(mse))
   
   sel <- which(diff(sapply(mse, function(xx) xx$orig)) > diff(sapply(mse, function(xx) xx$perm)))
-  if(length(sel)>1) sel <- sel[1]
+  if(length(sel)>1) sel <- sel
   selr <- rs[sel]
   
   if(plots) {
@@ -167,7 +170,7 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, ...) 
   end_time <- Sys.time()
   tot_time <- end_time - start_time
   
-  return(list(mse=mse, selected=selr, factors=nn[[sel]], time=tot_time))
+  return(list(mse=mse, selected=selr, factorization=nn[sel], time=tot_time, seed=seed))
   
 }
 
