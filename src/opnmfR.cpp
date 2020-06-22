@@ -18,7 +18,7 @@
 Rcpp::List opnmfR_opnmfRcpp(const arma::mat & X, const arma::mat & W0, double tol=0.00001, int maxiter=10000, double eps=1e-16, bool memsave=1) {
   arma::mat W = W0;
   arma::mat Wold = W;
-  arma::mat XXW = X * (X.t()*W);
+  //arma::mat XXW = X * (X.t()*W);
   double diffW = 9999999999.9;
   
   //Rcout << "The value of maxiter : " << maxiter << "\n";
@@ -32,12 +32,14 @@ Rcpp::List opnmfR_opnmfRcpp(const arma::mat & X, const arma::mat & W0, double to
   int i;
   for (i = 1; i <= maxiter; i++) {
     if(memsave==0) {
-      XXW = XX * W;
+      W = W % (XX*W) / (W*(W.t()*(XX*W)));
+      //XXW = XX * W;
     } else {
-      XXW = X * (X.t()*W);
+      W = W % (X*(X.t()*W)) / (W*((W.t()*X)*(X.t()*W)));
+      //XXW = X * (X.t()*W);
     }
-    W = W % XXW / (W  * (W.t() * XXW));
-    //W = W % (X*(X.t()*W)) / (W*((W.t()*X)*(X.t()*W)));
+    //W = W % XXW / (W  * (W.t() * XXW));
+    
     
     arma::uvec idx = find(W < eps);
     W.elem(idx).fill(eps);
