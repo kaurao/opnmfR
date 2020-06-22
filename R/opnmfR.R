@@ -121,6 +121,7 @@ opnmfR_mse <- function(X, W, H) {
 
 #' @export
 opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=NA, ...) {
+  stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
   
   if(is.na(seed)) seed <- sample(1:10^6, 1)
