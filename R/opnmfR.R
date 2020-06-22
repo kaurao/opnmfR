@@ -10,16 +10,16 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
-  plot(nn$W[,2], nn$W[,1], col=iris$Species)
+  plot(nn$W[,1], nn$W[,2], col=iris$Species)
   
   # now using rcpp
   cat("opnmfRcpp")
   start_time <- Sys.time()
-  nn <- opnmfRcpp(data.matrix(iris[,1:4]), r=r, W0=W0, use.rcpp=TRUE, ...)
+  nn <- opnmfRcpp(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
-  plot(nn$W[,2], nn$W[,1], col=iris$Species)
+  plot(nn$W[,1], nn$W[,2], col=iris$Species)
 }
 
 #' @export
@@ -129,15 +129,15 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, ...) 
   for(i in 1:length(rs)) {
     if(use.rcpp) {
       nn[[i]] <- opnmfRcpp(X, rs[i], W0=W0, ...)
-      cat("iter:", nn[[i]]$iter, "time:", nn[[i]]$time,"\n")
       nnp <- opnmfRcpp(Xperm, rs[i], W0=W0, ...)
-      cat("iter:", nnp$iter, "time:", nnp$time,"\n")
     } else {
       nn[[i]] <- opnmfR(X, rs[i], W0=W0, ...)
-      cat("iter:", nn[[i]]$iter,"time:", nn[[i]]$time,"\n")
       nnp <- opnmfR(Xperm, rs[i], W0=W0, ...)
-      cat("iter:", nnp$iter, "time:", nnp$time,"\n")
     }
+    
+    cat("orig", "iter:", nn[[i]]$iter, "time:", nn[[i]]$time, "diffW:", nn[[i]]$diffW, "\n")
+    cat("perm", "iter:", nnp$iter, "time:", nnp$time,"diffW:", nnp$diffW, "\n")
+    
     mse[[i]] <- list()
     mse[[i]]$orig <- opnmfR_mse(X, nn[[i]]$W, nn[[i]]$H)
     mse[[i]]$perm <- opnmfR_mse(Xperm, nnp$W, nnp$H)
