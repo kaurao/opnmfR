@@ -4,7 +4,7 @@
 #' @export
 opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   data("iris")
-  cat("opnmfR")
+  cat("opnmfR ")
   start_time <- Sys.time()
   nn <- opnmfR(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
   end_time <- Sys.time()
@@ -13,13 +13,15 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   plot(nn$W[,1], nn$W[,2], col=iris$Species)
   
   # now using rcpp
-  cat("opnmfRcpp")
+  cat("opnmfRcpp ")
   start_time <- Sys.time()
   nn <- opnmfRcpp(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
   plot(nn$W[,1], nn$W[,2], col=iris$Species)
+  
+  heatmap(nn$W)
 }
 
 #' @export
@@ -150,9 +152,6 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=
   names(mse) <- rs
   names(nn) <- rs
   
-  maxi <- max(unlist(mse))
-  mini <- min(unlist(mse))
-  
   sel <- which(diff(sapply(mse, function(xx) xx$orig)) > diff(sapply(mse, function(xx) xx$perm)))
   if(length(sel)>1) sel <- sel
   selr <- rs[sel]
@@ -160,7 +159,13 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=
   if(plots) {
     mseorig <- sapply(mse, function(xx) xx$orig)
     mseperm <- sapply(mse, function(xx) xx$perm)
-    plot(NA, xlim=c(min(rs),max(rs)), ylim=c(mini,maxi), xlab="Rank", ylab="MSE")
+    mseorig <- (mseorig-min(mseorig)) / (max(mseorig)-min(mseorig))
+    mseperm <- (mseperm-min(mseperm)) / (max(mseperm)-min(mseperm))
+    
+    maxi <- max(c(mseorig, mseperm))
+    mini <- min(c(mseorig, mseperm))
+    
+    plot(NA, xlim=c(min(rs),max(rs)), ylim=c(mini,maxi), xlab="Rank", ylab="MSE (scaled)")
     points(rs, mseorig, type='b', pch=16)
     points(rs, mseperm, type='b', pch=17, lty=2)
     points(selr, mseorig[sel], cex=2, pch=1, lwd=2, col="red")
