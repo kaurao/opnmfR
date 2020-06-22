@@ -1,6 +1,6 @@
 # Installation
 
-In the syste, terminal
+In the system terminal
 
 `cd ~`
 
