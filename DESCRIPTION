@@ -1,0 +1,11 @@
+Package: opnmfR
+Type: Package
+Title: Orthogonal Projective Non-negative Matrix Factorization
+Version: 0.1
+Date: 2020-06-22
+Author: Kaustubh R. Patil
+Maintainer: Kaustubh R. Patil <kaustubh.patil@gmail.com>
+Description: Implements OPNMF in pure R and in c++ via Rcpp. Also provides initialization and rank selection methods.
+License: GPL-3
+Imports: Rcpp (>= 1.0.4.6)
+LinkingTo: Rcpp, RcppArmadillo
