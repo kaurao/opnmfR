@@ -182,8 +182,8 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TR
   
   mseorig <- sapply(mse, function(xx) xx$orig)
   mseperm <- sapply(mse, function(xx) mean(xx$perm))
-  mseorig <- (mseorig-min(mseorig)) / (max(mseorig)-min(mseorig))
-  mseperm <- (mseperm-min(mseperm)) / (max(mseperm)-min(mseperm))
+  mseorig <- mseorig / max(mseorig)
+  mseperm <- mseperm / max(mseperm)
   
   sel <- which(diff(mseorig) > diff(mseperm))
   if(length(sel)>1) sel <- sel
