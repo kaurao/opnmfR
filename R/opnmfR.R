@@ -136,38 +136,52 @@ opnmfR_mse <- function(X, W, H) {
 }
 
 #' @export
-opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=NA, ...) {
+opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TRUE, seed=NA, ...) {
   stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
   
-  if(is.na(seed)) seed <- sample(1:10^6, 1)
-  set.seed(seed)
-  
-  Xperm <- apply(X,2,sample) # permute the rows in each column
+  # original data
+  cat("original data... ")
   nn <- list()
   mse <- list()
-  for(i in 1:length(rs)) {
+  for(r in 1:length(rs)) {
     if(use.rcpp) {
-      nn[[i]] <- opnmfRcpp(X, rs[i], W0=W0, ...)
-      nnp <- opnmfRcpp(Xperm, rs[i], W0=W0, ...)
+      nn[[r]] <- opnmfRcpp(X, rs[r], W0=W0, ...)
     } else {
-      nn[[i]] <- opnmfR(X, rs[i], W0=W0, ...)
-      nnp <- opnmfR(Xperm, rs[i], W0=W0, ...)
+      nn[[r]] <- opnmfR(X, rs[r], W0=W0, ...)
     }
     
-    cat("orig", "iter:", nn[[i]]$iter, "time:", nn[[i]]$time, "diffW:", nn[[i]]$diffW, "\n")
-    cat("perm", "iter:", nnp$iter, "time:", nnp$time,"diffW:", nnp$diffW, "\n")
-    
-    mse[[i]] <- list()
-    mse[[i]]$orig <- opnmfR_mse(X, nn[[i]]$W, nn[[i]]$H)
-    mse[[i]]$perm <- opnmfR_mse(Xperm, nnp$W, nnp$H)
+    cat("orig", "rank:", r, "iter:", nn[[r]]$iter, "time:", nn[[r]]$time, "diffW:", nn[[r]]$diffW, "\n")
+
+    mse[[r]] <- list()
+    mse[[r]]$orig <- opnmfR_mse(X, nn[[r]]$W, nn[[r]]$H)
   }
+  cat("done\n")
+  
+  # permuted data
+  cat("permuted data... ")
+  if(is.na(seed)) seed <- sample(1:10^6, 1)
+  for(p in 1:nperm) {
+    set.seed(seed+p)
+    Xperm <- apply(X,2,sample) # permute the rows in each column
+    for(r in 1:length(rs)) {
+      if(use.rcpp) {
+        nnp <- opnmfRcpp(Xperm, rs[r], W0=W0, ...)
+      } else {
+        nnp <- opnmfR(Xperm, rs[r], W0=W0, ...)
+      }
+    
+      cat("perm", p, "rank:", r, "iter:", nnp$iter, "time:", nnp$time,"diffW:", nnp$diffW, "\n")
+      mse[[r]]$perm <- c(mse[[r]]$perm, opnmfR_mse(Xperm, nnp$W, nnp$H))
+    }
+  }
+  cat("done\n")
   
   names(mse) <- rs
   names(nn) <- rs
   
   mseorig <- sapply(mse, function(xx) xx$orig)
-  mseperm <- sapply(mse, function(xx) xx$perm)
+  mseperm <- sapply(mse, function(xx) mean(xx$perm))
   mseorig <- (mseorig-min(mseorig)) / (max(mseorig)-min(mseorig))
   mseperm <- (mseperm-min(mseperm)) / (max(mseperm)-min(mseperm))
   
@@ -184,7 +198,7 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, plots=TRUE, seed=
     points(rs, mseperm, type='b', pch=17, lty=2)
     points(selr, mseorig[sel], cex=2, pch=1, lwd=2, col="red")
     legend("topright", legend = c("Orig.","Perm."), pch=16:17)
-    title(main="Permutation based rank selection", sub=paste("Selected rank = ", selr))
+    title(main="Permutation based rank selection", sub=paste("Selected rank = ", min(selr)))
   }
   
   end_time <- Sys.time()
