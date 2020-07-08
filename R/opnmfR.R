@@ -186,7 +186,6 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TR
   mseperm <- mseperm / max(mseperm)
   
   sel <- which(diff(mseorig) > diff(mseperm))
-  if(length(sel)>1) sel <- sel
   selr <- rs[sel]
   
   if(plots) {
@@ -224,6 +223,9 @@ opnmfR_init <- function(X, r, W0) {
   } else if(is.character(W0) && W0=="nndsvd2") {
     cat(W0)
     W0 <- opnmfR_nndsvd(X,r,flag = 2)$W
+  } else if(is.character(W0) && W0=="brainparts") {
+    cat(W0)
+    W0 <- opnmfR_nndsvd(X,r,epseps=0.1)$W
   }
   cat(" done\n")
   return(W0)
