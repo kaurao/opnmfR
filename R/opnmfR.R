@@ -182,7 +182,7 @@ opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfol
         mse[[n]]$test[f,r] <- norm(xtest_test - xtest_train, "F")
         mse[[n]]$test_test[f,r] <- norm(xtest_test - x[testidx,], "F")
         mse[[n]]$test_train[f,r] <- norm(xtest_train - x[testidx,], "F")
-        mse[[n]]$test_delta[f,r] <- norm(x[testidx,] - xtest_train, "F") - norm(xtest_test - x[testidx,], "F")
+        mse[[n]]$test_delta[f,r] <- abs(norm(x[testidx,] - xtest_train, "F") - norm(xtest_test - x[testidx,], "F"))
         
         nrun <- nrun + 1
         cat("test err", mse[[n]]$test[f,r], "\n#######\n")
@@ -192,29 +192,37 @@ opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfol
   
   errtrain <- do.call(rbind, lapply(mse, function(z) apply(z$train, 2, mean)))
   errtest <- do.call(rbind, lapply(mse, function(z) apply(z$test, 2, mean)))
+  errtest_delta <- do.call(rbind, lapply(mse, function(z) apply(z$test_delta, 2, mean)))
   
   mse$train <- errtrain
   mse$test <- errtest
+  mse$test_delta <- errtest_delta
   rownames(mse$train) <- paste("repeat", 1:nrepeat, sep="")
   colnames(mse$train) <- paste("rank", rs, sep="")
   rownames(mse$test) <- paste("repeat", 1:nrepeat, sep="")
   colnames(mse$test) <- paste("rank", rs, sep="")
+  rownames(mse$test_delta) <- paste("repeat", 1:nrepeat, sep="")
+  colnames(mse$test_delta) <- paste("rank", rs, sep="")
   
   errtrain <- apply(errtrain, 2, mean)
   errtest <- apply(errtest, 2, mean)
+  errtest_delta <- apply(errtest_delta, 2, mean)
   selr <- rs[which.min(errtest)]
+  selr_delta <- rs[which.min(errtest_delta)]
   
   if(plots) {
-    par(mfrow=c(1,2))
+    par(mfrow=c(1,3))
     plot(errtrain, main="Train", ylab="MSE", xlab="Rank")
     plot(errtest, main="Test", ylab="MSE", xlab="Rank")
     points(selr, errtest[selr], cex=1.5, col="red", pch=10)
+    plot(errtest_delta, main="Test", ylab="MSE (delta)", xlab="Rank")
+    points(selr_delta, errtest_delta[selr_delta], cex=1.5, col="red", pch=10)
   }
   
   end_time <- Sys.time()
   tot_time <- end_time - start_time
   
-  return(list(mse=mse, time=tot_time, seed=seed, selected=selr))
+  return(list(mse=mse, time=tot_time, seed=seed, selected=selr, selected_delta=selr_delta))
 }
 
 
