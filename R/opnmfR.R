@@ -135,6 +135,97 @@ opnmfR_mse <- function(X, W, H) {
   return(norm(X-(W %*% H), "F"))
 }
 
+
+chunk <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
+
+#' @export
+opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold=2, plots=TRUE, seed=NA, ...) {
+  stopifnot(ncol(X)>=max(rs))
+  start_time <- Sys.time()
+  
+  if(is.na(seed)) seed <- sample(1:10^6, 1)
+  mse <- list()
+  nrun <- 0
+  for(n in 1:nrepeat) {
+    mse[[n]] <- list()
+    mse[[n]]$train <- matrix(NA, nfold, length(rs))
+    mse[[n]]$test <- matrix(NA, nfold, length(rs))
+    mse[[n]]$test_delta <- matrix(NA, nfold, length(rs))
+    mse[[n]]$test_test <- matrix(NA, nfold, length(rs))
+    mse[[n]]$test_train <- matrix(NA, nfold, length(rs))
+    # get folds
+    set.seed(seed+n)
+    folds <- chunk(sample(1:nrow(X)), nfold)
+    for(f in 1:nfold) {
+      testidx <- folds[[f]]
+      trainidx <- setdiff(1:nrow(X), testidx)
+      cat("repeat", n, ": fold", f, ": nex",  length(testidx), ":")
+      
+      factrain <- list()
+      factest <- list()
+      for(r in 1:length(rs)) {
+        if(use.rcpp) {
+          factrain[[r]] <- opnmfRcpp(X[trainidx,], rs[r], W0=W0, ...)
+          factest[[r]] <- opnmfRcpp(X[testidx,], rs[r], W0=W0, ...)
+        } else {
+          factrain[[r]] <- opnmfR(X[trainidx,], rs[r], W0=W0, ...)
+          factest[[r]] <- opnmfR(X[testidx,], rs[r], W0=W0, ...)
+        }
+        
+        mse[[n]]$train[f,r] <- factrain[[r]]$mse
+        
+        # project on train H and get reconstruction error
+        #Xtest_test <- factest[[r]]$W %*% factest[[r]]$H
+        #Xtest_train <- factest[[r]]$W %*% factrain[[r]]$H
+        xtest_test <- opnmfR_reconstruct(x[testidx,], factest[[r]]$H)
+        xtest_train <- opnmfR_reconstruct(x[testidx,], factrain[[r]]$H)
+        mse[[n]]$test[f,r] <- norm(xtest_test - xtest_train, "F")
+        mse[[n]]$test_test[f,r] <- norm(xtest_test - x[testidx,], "F")
+        mse[[n]]$test_train[f,r] <- norm(xtest_train - x[testidx,], "F")
+        mse[[n]]$test_delta[f,r] <- norm(x[testidx,] - xtest_train, "F") - norm(xtest_test - x[testidx,], "F")
+        
+        nrun <- nrun + 1
+        cat("test err", mse[[n]]$test[f,r], "\n#######\n")
+      } # rs
+    } # nfold
+  } # nrepeat
+  
+  errtrain <- do.call(rbind, lapply(mse, function(z) apply(z$train, 2, mean)))
+  errtest <- do.call(rbind, lapply(mse, function(z) apply(z$test, 2, mean)))
+  
+  mse$train <- errtrain
+  mse$test <- errtest
+  rownames(mse$train) <- paste("repeat", 1:nrepeat, sep="")
+  colnames(mse$train) <- paste("rank", rs, sep="")
+  rownames(mse$test) <- paste("repeat", 1:nrepeat, sep="")
+  colnames(mse$test) <- paste("rank", rs, sep="")
+  
+  errtrain <- apply(errtrain, 2, mean)
+  errtest <- apply(errtest, 2, mean)
+  selr <- rs[which.min(errtest)]
+  
+  if(plots) {
+    par(mfrow=c(1,2))
+    plot(errtrain, main="Train", ylab="MSE", xlab="Rank")
+    plot(errtest, main="Test", ylab="MSE", xlab="Rank")
+    points(selr, errtest[selr], cex=1.5, col="red", pch=10)
+  }
+  
+  end_time <- Sys.time()
+  tot_time <- end_time - start_time
+  
+  return(list(mse=mse, time=tot_time, seed=seed, selected=selr))
+}
+
+
+#' @export
+opnmfR_reconstruct <- function(X, H) {
+  library(MASS) # for ginv
+  X <- abs(X %*% (t(H) %*% ginv(H %*% t(H))) %*% H)
+  return(X)
+}
+
+
 #' @export
 opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TRUE, seed=NA, ...) {
   stopifnot(ncol(X)>=max(rs))
