@@ -177,12 +177,12 @@ opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfol
         # project on train H and get reconstruction error
         #Xtest_test <- factest[[r]]$W %*% factest[[r]]$H
         #Xtest_train <- factest[[r]]$W %*% factrain[[r]]$H
-        xtest_test <- opnmfR_reconstruct(x[testidx,], factest[[r]]$H)
-        xtest_train <- opnmfR_reconstruct(x[testidx,], factrain[[r]]$H)
+        xtest_test <- opnmfR_reconstruct(X[testidx,], factest[[r]]$H)
+        xtest_train <- opnmfR_reconstruct(X[testidx,], factrain[[r]]$H)
         mse[[n]]$test[f,r] <- norm(xtest_test - xtest_train, "F")
-        mse[[n]]$test_test[f,r] <- norm(xtest_test - x[testidx,], "F")
-        mse[[n]]$test_train[f,r] <- norm(xtest_train - x[testidx,], "F")
-        mse[[n]]$test_delta[f,r] <- abs(norm(x[testidx,] - xtest_train, "F") - norm(xtest_test - x[testidx,], "F"))
+        mse[[n]]$test_test[f,r] <- norm(xtest_test - X[testidx,], "F")
+        mse[[n]]$test_train[f,r] <- norm(xtest_train - X[testidx,], "F")
+        mse[[n]]$test_delta[f,r] <- abs(norm(X[testidx,] - xtest_train, "F") - norm(xtest_test - X[testidx,], "F"))
         
         nrun <- nrun + 1
         cat("test err", mse[[n]]$test[f,r], "\n#######\n")
