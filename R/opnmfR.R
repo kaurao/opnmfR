@@ -139,7 +139,8 @@ opnmfR_mse <- function(X, W, H) {
 chunk <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
 
 #' @export
-opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold=2, plots=TRUE, seed=NA, ...) {
+opnmfR_ranksel_ooser <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold=2, plots=TRUE, seed=NA, ...) {
+  # we create folds over the columns
   stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
   
@@ -154,35 +155,40 @@ opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfol
     mse[[n]]$test_test <- matrix(NA, nfold, length(rs))
     mse[[n]]$test_train <- matrix(NA, nfold, length(rs))
     # get folds
+    # we need to fold over the columns
     set.seed(seed+n)
-    folds <- chunk(sample(1:nrow(X)), nfold)
+    folds <- chunk(sample(1:ncol(X)), nfold)
     for(f in 1:nfold) {
       testidx <- folds[[f]]
-      trainidx <- setdiff(1:nrow(X), testidx)
-      cat("repeat", n, ": fold", f, ": nex",  length(testidx), ":")
+      trainidx <- setdiff(1:ncol(X), testidx)
+      cat("repeat", n, ": fold", f, ": #test",  length(testidx), ": #train",  length(trainidx), ":")
       
       factrain <- list()
       factest <- list()
       for(r in 1:length(rs)) {
+        # get factors
         if(use.rcpp) {
-          factrain[[r]] <- opnmfRcpp(X[trainidx,], rs[r], W0=W0, ...)
-          factest[[r]] <- opnmfRcpp(X[testidx,], rs[r], W0=W0, ...)
+          factrain[[r]] <- opnmfRcpp(X[,trainidx], rs[r], W0=W0, ...)
+          factest[[r]] <- opnmfRcpp(X[,testidx], rs[r], W0=W0, ...)
         } else {
-          factrain[[r]] <- opnmfR(X[trainidx,], rs[r], W0=W0, ...)
-          factest[[r]] <- opnmfR(X[testidx,], rs[r], W0=W0, ...)
+          factrain[[r]] <- opnmfR(X[,trainidx], rs[r], W0=W0, ...)
+          factest[[r]] <- opnmfR(X[,testidx], rs[r], W0=W0, ...)
         }
         
+        # training error
         mse[[n]]$train[f,r] <- factrain[[r]]$mse
         
-        # project on train H and get reconstruction error
+        # project and get reconstruction error
         #Xtest_test <- factest[[r]]$W %*% factest[[r]]$H
         #Xtest_train <- factest[[r]]$W %*% factrain[[r]]$H
-        xtest_test <- opnmfR_reconstruct(X[testidx,], factest[[r]]$H)
-        xtest_train <- opnmfR_reconstruct(X[testidx,], factrain[[r]]$H)
+        # reconstruct test data using test data factors
+        xtest_test <- opnmfR_reconstruct_W(X[,testidx], factest[[r]]$W)
+        # reconstruct test data using training data factors
+        xtest_train <- opnmfR_reconstruct_W(X[,testidx], factrain[[r]]$W)
         mse[[n]]$test[f,r] <- norm(xtest_test - xtest_train, "F")
-        mse[[n]]$test_test[f,r] <- norm(xtest_test - X[testidx,], "F")
-        mse[[n]]$test_train[f,r] <- norm(xtest_train - X[testidx,], "F")
-        mse[[n]]$test_delta[f,r] <- abs(norm(X[testidx,] - xtest_train, "F") - norm(xtest_test - X[testidx,], "F"))
+        mse[[n]]$test_test[f,r] <- norm(xtest_test - X[,testidx], "F")
+        mse[[n]]$test_train[f,r] <- norm(xtest_train - X[,testidx], "F")
+        mse[[n]]$test_delta[f,r] <- abs(norm(X[,testidx] - xtest_train, "F") - norm(xtest_test - X[,testidx], "F"))
         
         nrun <- nrun + 1
         cat("test err", mse[[n]]$test[f,r], "\n#######\n")
@@ -207,16 +213,20 @@ opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfol
   errtrain <- apply(errtrain, 2, mean)
   errtest <- apply(errtest, 2, mean)
   errtest_delta <- apply(errtest_delta, 2, mean)
-  selr <- rs[which.min(errtest)]
-  selr_delta <- rs[which.min(errtest_delta)]
+  
+  # select rank(s)
+  selr_ind <- which.min(errtest)
+  selr <- rs[selr_ind]
+  selr_delta_ind <- rs[which.min(errtest_delta)]
+  selr_delta <- rs[selr_delta_ind]
   
   if(plots) {
     par(mfrow=c(1,3))
-    plot(errtrain, main="Train", ylab="MSE", xlab="Rank")
-    plot(errtest, main="Test", ylab="MSE", xlab="Rank")
-    points(selr, errtest[selr], cex=1.5, col="red", pch=10)
-    plot(errtest_delta, main="Test", ylab="MSE (delta)", xlab="Rank")
-    points(selr_delta, errtest_delta[selr_delta], cex=1.5, col="red", pch=10)
+    plot(rs, errtrain, main="Train", ylab="MSE", xlab="Rank")
+    plot(rs, errtest, main="Test", ylab="MSE", xlab="Rank")
+    points(selr, errtest[selr_ind], cex=1.5, col="red", pch=10)
+    plot(rs, errtest_delta, main="Test", ylab="MSE (delta)", xlab="Rank")
+    points(selr_delta, errtest_delta[selr_delta_ind], cex=1.5, col="red", pch=10)
   }
   
   end_time <- Sys.time()
@@ -227,10 +237,127 @@ opnmfR_ranksel_ooserr <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfol
 
 
 #' @export
-opnmfR_reconstruct <- function(X, H) {
+opnmfR_reconstruct_H <- function(X, H) {
   library(MASS) # for ginv
   X <- abs(X %*% (t(H) %*% ginv(H %*% t(H))) %*% H)
   return(X)
+}
+
+
+#' @export
+opnmfR_reconstruct_W <- function(X, W) {
+  library(MASS) # for ginv
+  X <- abs((W %*% ginv(W)) %*% X)
+  return(X)
+}
+
+opnmfR_cosine_similarity <- function(x, y){
+  xy <- tcrossprod(x, y)
+  x <- sqrt(apply(x, 1, crossprod))
+  y <- sqrt(apply(y, 1, crossprod))
+  xy / outer(x,y)
+}
+
+#' @export
+opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", plots=TRUE, seed=NA, ...) {
+  # we create folds over the columns
+  library(lpSolve) # for solving the assignment problem
+  
+  stopifnot(ncol(X)>=max(rs))
+  start_time <- Sys.time()
+  
+  if(is.na(seed)) seed <- sample(1:10^6, 1)
+  mse <- list()
+  nrun <- 0
+  for(n in 1:nrepeat) {
+    mse[[n]] <- list()
+    mse[[n]]$train <- matrix(NA, 2, length(rs))
+    mse[[n]]$sim_inner <- rep(NA, length(rs))
+    mse[[n]]$sim_cosine <- rep(NA, length(rs))
+    # cor_cosine is from https://www.sciencedirect.com/science/article/pii/S1053811919309395
+    mse[[n]]$cor_cosine <- rep(NA, length(rs))
+    
+    # get folds
+    # we need to fold over the columns
+    set.seed(seed+n)
+    folds <- chunk(sample(1:ncol(X)), 2)
+    idx1 <- folds[[1]]
+    idx2 <- setdiff(1:ncol(X), idx1)
+    cat("repeat", n, ": #idx1",  length(idx1), ": #idx2",  length(idx2), ":")
+    
+    fac1 <- list()
+    fac2 <- list()
+    for(r in 1:length(rs)) {
+      # get factors
+      if(use.rcpp) {
+        fac1[[r]] <- opnmfRcpp(X[,idx1], rs[r], W0=W0, ...)
+        fac2[[r]] <- opnmfRcpp(X[,idx2], rs[r], W0=W0, ...)
+      } else {
+        fac1[[r]] <- opnmfR(X[,idx1], rs[r], W0=W0, ...)
+        fac2[[r]] <- opnmfR(X[,idx2], rs[r], W0=W0, ...)
+      }
+      
+      # training error
+      mse[[n]]$train[1,r] <- fac1[[r]]$mse
+      mse[[n]]$train[2,r] <- fac2[[r]]$mse
+      
+      # match two solutions on their W
+      sim <- t(fac1[[r]]$W) %*% fac2[[r]]$W
+      lp <- lp.assign(sim, direction = "max")
+      mse[[n]]$sim_inner[r] <- lp$objval
+      
+      sim <- opnmfR_cosine_similarity(t(fac1[[r]]$W), t(fac2[[r]]$W))
+      lp <- lp.assign(sim, direction = "max")
+      mse[[n]]$sim_cosine[r] <- lp$objval
+      
+      # get cor_cosine
+      sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
+      sim2 <- opnmfR_cosine_similarity(fac2[[r]]$W, fac2[[r]]$W)
+      cr <- rep(NA, nrow(sim1))
+      for(ii in 1:nrow(sim1)) cr[ii] <- cor(sim1[ii,], sim2[ii,])
+      mse[[n]]$cor_cosine[r] <- mean(cr, na.rm = TRUE)
+      
+      cat("match", mse[[n]]$sim_cosine[r], "\n#######\n")
+    } # rs
+  } # nrepeat
+  
+  err <- do.call(rbind, lapply(mse, function(z) apply(z$train, 2, mean)))
+  err <- apply(err, 2, mean)
+
+  sim_inner <- do.call(rbind, lapply(mse, function(z) z$sim_inner))
+  sim_inner <- apply(sim_inner, 2, mean)
+  
+  sim_cosine <- do.call(rbind, lapply(mse, function(z) z$sim_cosine))
+  sim_cosine <- apply(sim_cosine, 2, mean)
+  
+  cor_cosine <- do.call(rbind, lapply(mse, function(z) z$cor_cosine))
+  cor_cosine <- apply(cor_cosine, 2, mean)
+  
+  # select rank(s)
+  selr_inner_ind <- which.max(sim_inner)
+  selr_inner <- rs[selr_inner_ind]
+  
+  selr_cosine_ind <- which.max(sim_cosine)
+  selr_cosine <- rs[selr_cosine_ind]
+  
+  selr_cor_cosine_ind <- which.max(cor_cosine)
+  selr_cor_cosine <- rs[selr_cor_cosine_ind]
+  
+  if(plots) {
+    par(mfrow=c(2,2))
+    plot(rs, err, main="Train", ylab="MSE", xlab="Rank")
+    plot(rs, cor_cosine, main="Stability", ylab="Correlation", xlab="Rank")
+    points(selr_cor_cosine, cor_cosine[selr_cor_cosine_ind], cex=1.5, col="red", pch=10)
+    plot(rs, sim_inner, main="Similarity", ylab="Inner product", xlab="Rank")
+    points(selr_inner, sim_inner[selr_inner_ind], cex=1.5, col="red", pch=10)
+    plot(rs, sim_cosine, main="Similarity", ylab="Cosine", xlab="Rank")
+    points(selr_cosine, sim_cosine[selr_cosine_ind], cex=1.5, col="red", pch=10)
+  }
+  
+  end_time <- Sys.time()
+  tot_time <- end_time - start_time
+  
+  return(list(mse=mse, time=tot_time, seed=seed, selected_inner=selr_inner, selected_cosine=selr_cosine, selected_cor_cosine=selr_cor_cosine))
 }
 
 
@@ -339,6 +466,7 @@ opnmfR_nndsvd  <- function(x,k,flag=0,seed=NA,s=NULL,eps=0.0000000001,epseps=0) 
   stopifnot(all(x>=0))
   
   if(is.null(s)) s <- svd(x,k,k)
+  # the following conditions might not meet when doing ooser
   stopifnot(ncol(s$u)>=k)
   stopifnot(ncol(s$v)>=k)
   
