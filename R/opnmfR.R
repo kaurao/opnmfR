@@ -328,12 +328,12 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
       # inner product
       sim <- t(fac1[[r]]$W) %*% fac2[[r]]$W
       lp <- lp.assign(sim, direction = "max")
-      mse[[n]]$sim_inner[r] <- mean(sim[lp$solution>0])
+      mse[[n]]$sim_inner[r] <- lp$objval/rs[r]
       
       #cosine
       sim <- opnmfR_cosine_similarity(t(fac1[[r]]$W), t(fac2[[r]]$W))
       lp <- lp.assign(sim, direction = "max")
-      mse[[n]]$sim_cosine[r] <- mean(sim[lp$solution>0])
+      mse[[n]]$sim_cosine[r] <- lp$objval/rs[r]
       
       # get cor_cosine
       sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
