@@ -33,7 +33,7 @@ opnmfR_test_ranksel <- function(nrepeat=1) {
   X <- data.matrix(iris[,1:4])
   X <- t(cbind(X, X)) # duplicate columns and transpose, i.e. factorize features
   
-  perm <- opnmfR_ranksel_perm(X, 1:nrow(X))
+  perm <- opnmfR_ranksel_perm(X, 1:nrow(X), nperm=nrepeat)
   ooser <- opnmfR_ranksel_ooser(X, 1:nrow(X))
   splithalf <- opnmfR_ranksel_splithalf(X, 1:nrow(X), nrepeat=nrepeat)
 }
@@ -325,13 +325,15 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
       mse[[n]]$train[2,r] <- fac2[[r]]$mse
       
       # match two solutions on their W
+      # inner product
       sim <- t(fac1[[r]]$W) %*% fac2[[r]]$W
       lp <- lp.assign(sim, direction = "max")
-      mse[[n]]$sim_inner[r] <- lp$objval
+      mse[[n]]$sim_inner[r] <- mean(sim[lp$solution>0])
       
+      #cosine
       sim <- opnmfR_cosine_similarity(t(fac1[[r]]$W), t(fac2[[r]]$W))
       lp <- lp.assign(sim, direction = "max")
-      mse[[n]]$sim_cosine[r] <- lp$objval
+      mse[[n]]$sim_cosine[r] <- mean(sim[lp$solution>0])
       
       # get cor_cosine
       sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
