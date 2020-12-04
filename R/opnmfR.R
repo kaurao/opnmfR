@@ -4,7 +4,7 @@
 #' @export
 opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   data("iris")
-  cat("opnmfR ")
+  cat("opnmfR test ")
   start_time <- Sys.time()
   nn <- opnmfR(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
   end_time <- Sys.time()
@@ -13,7 +13,7 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   plot(nn$W[,1], nn$W[,2], col=iris$Species, xlab="Factor 1", ylab="Factor 2")
   
   # now using rcpp
-  cat("opnmfRcpp ")
+  cat("opnmfRcpp test ")
   start_time <- Sys.time()
   nn <- opnmfRcpp(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
   end_time <- Sys.time()
@@ -23,6 +23,19 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   par(mfrow=c(1,2))
   image(nn$W, main="W")
   image(nn$H, main="H")
+}
+
+#' @export
+opnmfR_test_ranksel <- function() {
+  data("iris")
+  cat("opnmfR ranksel ")
+  start_time <- Sys.time()
+  X <- data.matrix(iris[,1:4])
+  X <- t(cbind(X, X)) # duplicate columns and transpose, i.e. find factorize features
+  
+  perm <- opnmfR_ranksel_perm(X, 1:nrow(X))
+  ooser <- opnmfR_ranksel_ooser(X, 1:nrow(X))
+  splithalf <- opnmfR_ranksel_splithalf(X, 1:nrow(X))
 }
 
 #' @export
@@ -259,12 +272,18 @@ opnmfR_cosine_similarity <- function(x, y){
 }
 
 #' @export
-opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", plots=TRUE, seed=NA, ...) {
+opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", splits=NA, plots=TRUE, seed=NA, ...) {
   # we create folds over the columns
   library(lpSolve) # for solving the assignment problem
   
   stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
+  
+  if(!is.na(splits)) {
+    stopifnot(typeof(splits) == "list")
+    nrepeat <- length(splits)
+  }
+  stopifnot(nrepeat > 0)
   
   if(is.na(seed)) seed <- sample(1:10^6, 1)
   mse <- list()
@@ -280,8 +299,12 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
     # get folds
     # we need to fold over the columns
     set.seed(seed+n)
-    folds <- chunk(sample(1:ncol(X)), 2)
-    idx1 <- folds[[1]]
+    if(!is.na(splits)) {
+      idx1 <- splits[[n]]
+    } else {
+      folds <- chunk(sample(1:ncol(X)), 2)
+      idx1 <- folds[[1]]
+    }
     idx2 <- setdiff(1:ncol(X), idx1)
     cat("repeat", n, ": #idx1",  length(idx1), ": #idx2",  length(idx2), ":")
     
