@@ -26,16 +26,16 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
 }
 
 #' @export
-opnmfR_test_ranksel <- function() {
+opnmfR_test_ranksel <- function(nrepeat=1) {
   data("iris")
   cat("opnmfR ranksel ")
   start_time <- Sys.time()
   X <- data.matrix(iris[,1:4])
-  X <- t(cbind(X, X)) # duplicate columns and transpose, i.e. find factorize features
+  X <- t(cbind(X, X)) # duplicate columns and transpose, i.e. factorize features
   
   perm <- opnmfR_ranksel_perm(X, 1:nrow(X))
   ooser <- opnmfR_ranksel_ooser(X, 1:nrow(X))
-  splithalf <- opnmfR_ranksel_splithalf(X, 1:nrow(X))
+  splithalf <- opnmfR_ranksel_splithalf(X, 1:nrow(X), nrepeat=nrepeat)
 }
 
 #' @export
@@ -336,6 +336,8 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
       # get cor_cosine
       sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
       sim2 <- opnmfR_cosine_similarity(fac2[[r]]$W, fac2[[r]]$W)
+      stopifnot(nrow(sim1) == nrow(fac1[[r]]$W))
+      stopifnot(ncol(sim1) == nrow(fac1[[r]]$W))
       cr <- rep(NA, nrow(sim1))
       for(ii in 1:nrow(sim1)) cr[ii] <- cor(sim1[ii,], sim2[ii,])
       mse[[n]]$cor_cosine[r] <- mean(cr, na.rm = TRUE)
@@ -369,7 +371,7 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
   if(plots) {
     par(mfrow=c(2,2))
     plot(rs, err, main="Train", ylab="MSE", xlab="Rank")
-    plot(rs, cor_cosine, main="Stability", ylab="Correlation", xlab="Rank")
+    plot(rs, cor_cosine, main="Stability (cosine)", ylab="Correlation", xlab="Rank")
     points(selr_cor_cosine, cor_cosine[selr_cor_cosine_ind], cex=1.5, col="red", pch=10)
     plot(rs, sim_inner, main="Similarity", ylab="Inner product", xlab="Rank")
     points(selr_inner, sim_inner[selr_inner_ind], cex=1.5, col="red", pch=10)
