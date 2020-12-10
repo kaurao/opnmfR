@@ -26,16 +26,20 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
 }
 
 #' @export
-opnmfR_test_ranksel <- function(nrepeat=1) {
-  data("iris")
-  cat("opnmfR ranksel ")
-  start_time <- Sys.time()
-  X <- data.matrix(iris[,1:4])
-  X <- t(cbind(X, X)) # duplicate columns and transpose, i.e. factorize features
+opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0=NULL, nrepeat=1) {
+  if(is.null(X)) {
+    data("iris")
+    cat("opnmfR ranksel ")
+    start_time <- Sys.time()
+    X <- data.matrix(iris[,1:4])
+    X <- t(cbind(X, X)) # duplicate columns and transpose, i.e. factorize features
+  }
   
-  perm <- opnmfR_ranksel_perm(X, 1:nrow(X), nperm=nrepeat)
-  ooser <- opnmfR_ranksel_ooser(X, 1:nrow(X))
-  splithalf <- opnmfR_ranksel_splithalf(X, 1:nrow(X), nrepeat=nrepeat)
+  if(is.null(rs)) rs <- 1:nrow(X)
+  
+  perm <- opnmfR_ranksel_perm(X, rs, W0=W0, nperm=nrepeat)
+  ooser <- opnmfR_ranksel_ooser(X, rs, W0=W0)
+  splithalf <- opnmfR_ranksel_splithalf(X, rs, W0=W0, nrepeat=nrepeat)
 }
 
 #' @export
@@ -275,6 +279,7 @@ opnmfR_cosine_similarity <- function(x, y){
 opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", splits=NA, plots=TRUE, seed=NA, ...) {
   # we create folds over the columns
   library(lpSolve) # for solving the assignment problem
+  library(aricode) # for ARI
   
   stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
@@ -286,15 +291,16 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
   stopifnot(nrepeat > 0)
   
   if(is.na(seed)) seed <- sample(1:10^6, 1)
-  mse <- list()
+  perf <- list()
   nrun <- 0
   for(n in 1:nrepeat) {
-    mse[[n]] <- list()
-    mse[[n]]$train <- matrix(NA, 2, length(rs))
-    mse[[n]]$sim_inner <- rep(NA, length(rs))
-    mse[[n]]$sim_cosine <- rep(NA, length(rs))
+    perf[[n]] <- list()
+    perf[[n]]$train_err <- matrix(NA, 2, length(rs))
+    perf[[n]]$sim_inner <- rep(NA, length(rs))
+    perf[[n]]$sim_cosine <- rep(NA, length(rs))
+    perf[[n]]$ari <- rep(NA, length(rs))
     # cor_cosine is from https://www.sciencedirect.com/science/article/pii/S1053811919309395
-    mse[[n]]$cor_cosine <- rep(NA, length(rs))
+    perf[[n]]$cor_cosine <- rep(NA, length(rs))
     
     # get folds
     # we need to fold over the columns
@@ -321,70 +327,110 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
       }
       
       # training error
-      mse[[n]]$train[1,r] <- fac1[[r]]$mse
-      mse[[n]]$train[2,r] <- fac2[[r]]$mse
+      perf[[n]]$train_err[1,r] <- fac1[[r]]$mse
+      perf[[n]]$train_err[2,r] <- fac2[[r]]$mse
       
       # match two solutions on their W
       # inner product
       sim <- t(fac1[[r]]$W) %*% fac2[[r]]$W
       lp <- lp.assign(sim, direction = "max")
-      mse[[n]]$sim_inner[r] <- lp$objval/rs[r]
+      perf[[n]]$sim_inner[r] <- lp$objval/rs[r]
       
-      #cosine
+      # cosine
       sim <- opnmfR_cosine_similarity(t(fac1[[r]]$W), t(fac2[[r]]$W))
       lp <- lp.assign(sim, direction = "max")
-      mse[[n]]$sim_cosine[r] <- lp$objval/rs[r]
+      perf[[n]]$sim_cosine[r] <- lp$objval/rs[r]
       
-      # get cor_cosine
+      # cor_cosine
       sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
       sim2 <- opnmfR_cosine_similarity(fac2[[r]]$W, fac2[[r]]$W)
       stopifnot(nrow(sim1) == nrow(fac1[[r]]$W))
       stopifnot(ncol(sim1) == nrow(fac1[[r]]$W))
       cr <- rep(NA, nrow(sim1))
       for(ii in 1:nrow(sim1)) cr[ii] <- cor(sim1[ii,], sim2[ii,])
-      mse[[n]]$cor_cosine[r] <- mean(cr, na.rm = TRUE)
+      perf[[n]]$cor_cosine[r] <- mean(cr, na.rm = TRUE)
       
-      cat("match", mse[[n]]$sim_cosine[r], "\n#######\n")
+      # ari
+      if(r > 1) {
+        cl1 <- apply(fac1[[r]]$W, 1, which.max)
+        cl2 <- apply(fac2[[r]]$W, 1, which.max)
+        stopifnot(length(cl1)==nrow(X))
+        perf[[n]]$ari[r] <- ARI(cl1, cl2)
+      }
+      
+      cat("match", perf[[n]]$sim_cosine[r], "\n#######\n")
     } # rs
   } # nrepeat
   
-  err <- do.call(rbind, lapply(mse, function(z) apply(z$train, 2, mean)))
-  err <- apply(err, 2, mean)
-
-  sim_inner <- do.call(rbind, lapply(mse, function(z) z$sim_inner))
-  sim_inner <- apply(sim_inner, 2, mean)
-  
-  sim_cosine <- do.call(rbind, lapply(mse, function(z) z$sim_cosine))
-  sim_cosine <- apply(sim_cosine, 2, mean)
-  
-  cor_cosine <- do.call(rbind, lapply(mse, function(z) z$cor_cosine))
-  cor_cosine <- apply(cor_cosine, 2, mean)
-  
-  # select rank(s)
-  selr_inner_ind <- which.max(sim_inner)
-  selr_inner <- rs[selr_inner_ind]
-  
-  selr_cosine_ind <- which.max(sim_cosine)
-  selr_cosine <- rs[selr_cosine_ind]
-  
-  selr_cor_cosine_ind <- which.max(cor_cosine)
-  selr_cor_cosine <- rs[selr_cor_cosine_ind]
-  
-  if(plots) {
-    par(mfrow=c(2,2))
-    plot(rs, err, main="Train", ylab="MSE", xlab="Rank")
-    plot(rs, cor_cosine, main="Stability (cosine)", ylab="Correlation", xlab="Rank")
-    points(selr_cor_cosine, cor_cosine[selr_cor_cosine_ind], cex=1.5, col="red", pch=10)
-    plot(rs, sim_inner, main="Similarity", ylab="Inner product", xlab="Rank")
-    points(selr_inner, sim_inner[selr_inner_ind], cex=1.5, col="red", pch=10)
-    plot(rs, sim_cosine, main="Similarity", ylab="Cosine", xlab="Rank")
-    points(selr_cosine, sim_cosine[selr_cosine_ind], cex=1.5, col="red", pch=10)
-  }
+  selection <- opnmfR_ranksel_splithalf_select(perf, rs, plots)
   
   end_time <- Sys.time()
   tot_time <- end_time - start_time
   
-  return(list(mse=mse, time=tot_time, seed=seed, selected_inner=selr_inner, selected_cosine=selr_cosine, selected_cor_cosine=selr_cor_cosine))
+  return(list(perf=perf, time=tot_time, seed=seed, selection=selection))
+}
+
+opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE) {
+  
+  measures <- names(perf[[1]])
+  measures_avg <- matrix(NA, nrow=length(measures), ncol=length(rs))
+  rownames(measures_avg) <- measures
+  colnames(measures_avg) <- rs
+  
+  selected <- matrix(NA, nrow = length(measures), ncol=3)
+  rownames(selected) <- measures
+  colnames(selected) <- c("value", "index", "rank")
+  
+  for(i in 1:length(measures)) {
+    findmax <- TRUE
+    if(measures[i]=="train_err") {
+      mea <- do.call(rbind, lapply(perf, function(z) apply(z[[measures[i]]], 2, mean)))
+      findmax <- FALSE
+    } else{
+      mea <- do.call(rbind, lapply(perf, function(z) z[[measures[i]]]))
+    }
+    
+    mea <- apply(mea, 2, mean)
+    measures_avg[i,] <- mea
+  
+    # select rank(s)
+    if(findmax) {
+      selected[i,1] <- max(mea, na.rm=TRUE)
+      selected[i,2] <- which.max(mea==selected[i,1])[1]
+      selected[i,3] <- rs[selected[i,2]]
+    } else {
+      selected[i,1] <- min(mea)
+      selected[i,2] <- which.min(mea)
+      selected[i,3] <- rs[selected[i,2]]
+    }
+  }
+  
+  if(plots) {
+    par(mfrow=c(1,1))
+    startoverlap <- FALSE
+    measures_overlap <- c()
+    col_overlap <- c()
+    for(i in 1:length(measures)) {
+      mea <- measures_avg[i,]
+      if(measures[i]=="train_err") {
+        plot(mea, xlab="Ranks", ylab="Training MSE", main="Split-half", type="b")
+      } else {
+        mea <- (mea - min(mea, na.rm=TRUE)) / (max(mea, na.rm=TRUE) - min(mea, na.rm=TRUE))
+        if(!startoverlap) {
+          par(mar=c(5.3, 4.3, 4.3, 8.3), xpd=TRUE)
+          plot(x=rs, y=mea, ylim=c(0,1.1), type="b", col=i, xlab="Ranks", ylab="Measure", main="Split-half")
+        }
+        else points(x=rs, y=mea, ylim=c(0,1.3), type="b", col=i)
+        points(selected[i,3], mea[selected[i,2]], cex=1.5+i/10, col=i, pch=10)
+        measures_overlap <- c(measures_overlap, measures[i])
+        col_overlap <- c(col_overlap, i)
+        startoverlap <- TRUE
+      }
+    }
+    legend("topright", inset=c(-0.4,0), legend=measures_overlap, col=col_overlap, pch=1)
+  }
+  
+  return(list(measures_avg=measures_avg, selected=selected))
 }
 
 
@@ -449,8 +495,8 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TR
     points(rs, mseorig, type='b', pch=16)
     points(rs, mseperm, type='b', pch=17, lty=2)
     points(selr, mseorig[sel], cex=2, pch=1, lwd=2, col="red")
-    legend("topright", legend = c("Orig.","Perm."), pch=16:17)
-    title(main="Permutation based rank selection", sub=paste("Selected rank = ", min(selr)))
+    legend("bottomleft", legend = c("Orig.","Perm."), pch=16:17)
+    title(main="Permutation", sub=paste("Selected rank = ", min(selr)))
   }
   
   end_time <- Sys.time()
