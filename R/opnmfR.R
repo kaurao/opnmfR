@@ -40,6 +40,8 @@ opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0=NULL, nrepeat=1) {
   perm <- opnmfR_ranksel_perm(X, rs, W0=W0, nperm=nrepeat)
   ooser <- opnmfR_ranksel_ooser(X, rs, W0=W0)
   splithalf <- opnmfR_ranksel_splithalf(X, rs, W0=W0, nrepeat=nrepeat)
+  
+  return(list(perm=perm, ooser=ooser, splithalf=splithalf))
 }
 
 #' @export
