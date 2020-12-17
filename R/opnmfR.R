@@ -27,6 +27,7 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   par(mfrow=c(1,2))
   image(nn$W, main="W")
   image(nn$H, main="H")
+  par(mfrow=c(1,1))
 }
 
 #' @export
@@ -295,6 +296,7 @@ opnmfR_ranksel_ooser <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold
     plot(rs, errtest_delta, main="Test", ylab="MSE (delta)", xlab="Rank")
     points(selr_delta, errtest_delta[selr_delta_ind], cex=1.5, col="red", pch=10)
     if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
+    par(mfrow=c(1,1))
   }
   
   end_time <- Sys.time()
