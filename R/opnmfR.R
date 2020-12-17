@@ -1,4 +1,8 @@
-# modified from: https://github.com/asotiras/brainparts
+# partly based on `brainparts`: https://github.com/asotiras/brainparts
+
+library(NMF)
+library(lpSolve)
+library(aricode)
 
 # test run on "iris" data
 #' @export
@@ -42,6 +46,48 @@ opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0=NULL, nrepeat=1) {
   splithalf <- opnmfR_ranksel_splithalf(X, rs, W0=W0, nrepeat=nrepeat)
   
   return(list(perm=perm, ooser=ooser, splithalf=splithalf))
+}
+
+#' @export
+opnmfR_test_ranksel_synthetic <- function(n=100, r=10, p=100, rs=NULL, W0=NULL, nrepeat=1) {
+  stopifnot(r <= 20) # keep the test computable
+  stopifnot(r < n && r < p)
+  X <- syntheticNMF(n,r,p)
+  if(is.null(rs)) rs <- 1:min(nrow(X), round(r+r*0.5))
+
+  perm <- opnmfR_ranksel_perm(X, rs, W0=W0, nperm=nrepeat, rtrue=r)
+  ooser <- opnmfR_ranksel_ooser(X, rs, W0=W0, rtrue=r)
+  splithalf <- opnmfR_ranksel_splithalf(X, rs, W0=W0, nrepeat=nrepeat, rtrue=r)
+  
+  return(list(perm=perm, ooser=ooser, splithalf=splithalf))
+}
+
+#' @export
+opnmfR_compare_nmf <- function(n=100, r=10, p=100, nmfalgo="snmf/r", rs=NA) {
+  stopifnot(r < n && r < p)
+  if(is.na(rs)) rs <- r
+  stopifnot(rs < n && rs < p)
+  X <- syntheticNMF(n,r,p)
+  sim_cosine <- rep(NA, r)
+  ari <- rep(NA, r)
+  for(rr in 1:rs) {
+    fac1 = nmf(X, rr, nmfalgo)
+    fac2 = opnmfR(X, rr)
+    sim <- opnmfR_cosine_similarity(t(fac1@fit@W), t(fac2$W))
+    lp <- lp.assign(sim, direction = "max")
+    sim_cosine[rr] <- lp$objval/rr
+    if(rr > 1) {
+      ari[rr] <- ARI(apply(fac1@fit@W,1,which.max), apply(fac2$W,1,which.max))
+    }
+  }
+  par(mfrow=c(1,2))
+  plot(sim_cosine, type="b", xlab="Rank", ylab="Similarity (cosine)", main=paste("NMF", nmfalgo), pch=16)
+  abline(v=r, lty=2, col="gray")
+  plot(ari, type="b", xlab="Rank", ylab="Similarity (ARI)", main=paste("NMF", nmfalgo), pch=17)
+  abline(v=r, lty=2, col="gray")
+  par(mfrow=c(1,1))
+  
+  return(list(sim_cosine=sim_cosine, ari=ari))
 }
 
 #' @export
@@ -158,7 +204,7 @@ opnmfR_mse <- function(X, W, H) {
 chunk <- function(x,n) split(x, cut(seq_along(x), n, labels = FALSE)) 
 
 #' @export
-opnmfR_ranksel_ooser <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold=2, plots=TRUE, seed=NA, ...) {
+opnmfR_ranksel_ooser <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold=2, plots=TRUE, seed=NA, rtrue=NA, ...) {
   # we create folds over the columns
   stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
@@ -242,10 +288,13 @@ opnmfR_ranksel_ooser <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, nfold
   if(plots) {
     par(mfrow=c(1,3))
     plot(rs, errtrain, main="Train", ylab="MSE", xlab="Rank")
+    if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
     plot(rs, errtest, main="Test", ylab="MSE", xlab="Rank")
     points(selr, errtest[selr_ind], cex=1.5, col="red", pch=10)
+    if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
     plot(rs, errtest_delta, main="Test", ylab="MSE (delta)", xlab="Rank")
     points(selr_delta, errtest_delta[selr_delta_ind], cex=1.5, col="red", pch=10)
+    if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
   }
   
   end_time <- Sys.time()
@@ -278,7 +327,7 @@ opnmfR_cosine_similarity <- function(x, y){
 }
 
 #' @export
-opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", splits=NA, plots=TRUE, seed=NA, ...) {
+opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", splits=NA, plots=TRUE, seed=NA, rtrue=NA, ...) {
   # we create folds over the columns
   library(lpSolve) # for solving the assignment problem
   library(aricode) # for ARI
@@ -337,23 +386,23 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
       sim <- t(fac1[[r]]$W) %*% fac2[[r]]$W
       lp <- lp.assign(sim, direction = "max")
       perf[[n]]$sim_inner[r] <- lp$objval/rs[r]
-      
+
       # cosine
       sim <- opnmfR_cosine_similarity(t(fac1[[r]]$W), t(fac2[[r]]$W))
       lp <- lp.assign(sim, direction = "max")
       perf[[n]]$sim_cosine[r] <- lp$objval/rs[r]
       
-      # cor_cosine
-      sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
-      sim2 <- opnmfR_cosine_similarity(fac2[[r]]$W, fac2[[r]]$W)
-      stopifnot(nrow(sim1) == nrow(fac1[[r]]$W))
-      stopifnot(ncol(sim1) == nrow(fac1[[r]]$W))
-      cr <- rep(NA, nrow(sim1))
-      for(ii in 1:nrow(sim1)) cr[ii] <- cor(sim1[ii,], sim2[ii,])
-      perf[[n]]$cor_cosine[r] <- mean(cr, na.rm = TRUE)
-      
-      # ari
       if(r > 1) {
+        # cor_cosine
+        sim1 <- opnmfR_cosine_similarity(fac1[[r]]$W, fac1[[r]]$W) 
+        sim2 <- opnmfR_cosine_similarity(fac2[[r]]$W, fac2[[r]]$W)
+        stopifnot(nrow(sim1) == nrow(fac1[[r]]$W))
+        stopifnot(ncol(sim1) == nrow(fac1[[r]]$W))
+        cr <- rep(NA, nrow(sim1))
+        for(ii in 1:nrow(sim1)) cr[ii] <- cor(sim1[ii,], sim2[ii,])
+        perf[[n]]$cor_cosine[r] <- mean(cr, na.rm = TRUE)
+        
+        # ari
         cl1 <- apply(fac1[[r]]$W, 1, which.max)
         cl2 <- apply(fac2[[r]]$W, 1, which.max)
         stopifnot(length(cl1)==nrow(X))
@@ -364,7 +413,7 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
     } # rs
   } # nrepeat
   
-  selection <- opnmfR_ranksel_splithalf_select(perf, rs, plots)
+  selection <- opnmfR_ranksel_splithalf_select(perf, rs, plots, rtrue)
   
   end_time <- Sys.time()
   tot_time <- end_time - start_time
@@ -372,7 +421,7 @@ opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, s
   return(list(perf=perf, time=tot_time, seed=seed, selection=selection))
 }
 
-opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE) {
+opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE, rtrue=NA) {
   
   measures <- names(perf[[1]])
   measures_avg <- matrix(NA, nrow=length(measures), ncol=length(rs))
@@ -429,6 +478,7 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE) {
         startoverlap <- TRUE
       }
     }
+    if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
     legend("topright", inset=c(-0.4,0), legend=measures_overlap, col=col_overlap, pch=1)
   }
   
@@ -437,7 +487,7 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE) {
 
 
 #' @export
-opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TRUE, seed=NA, ...) {
+opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TRUE, seed=NA, rtrue=NA, ...) {
   stopifnot(ncol(X)>=max(rs))
   start_time <- Sys.time()
   
@@ -497,6 +547,7 @@ opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TR
     points(rs, mseorig, type='b', pch=16)
     points(rs, mseperm, type='b', pch=17, lty=2)
     points(selr, mseorig[sel], cex=2, pch=1, lwd=2, col="red")
+    if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
     legend("bottomleft", legend = c("Orig.","Perm."), pch=16:17)
     title(main="Permutation", sub=paste("Selected rank = ", min(selr)))
   }
@@ -541,7 +592,7 @@ opnmfR_nndsvd  <- function(x,k,flag=0,seed=NA,s=NULL,eps=0.0000000001,epseps=0) 
   stopifnot(all(x>=0))
   
   if(is.null(s)) s <- svd(x,k,k)
-  # the following conditions might not meet when doing ooser
+  # the following conditions might not be met when doing ooser
   stopifnot(ncol(s$u)>=k)
   stopifnot(ncol(s$v)>=k)
   
