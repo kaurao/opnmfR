@@ -18,6 +18,7 @@ library(aricode)
 #' Simple test
 #'
 #' @param X A matrix, if NULL the "iris" data is used (default NULL)
+#' @param y A vector with class labels same length as nrow of X, if X=NULL then iris$Species is used (default NULL)
 #' @param r A number, rank to use (default 2)
 #' @param W0 A string or matrix for initialization (default "nndsvd")
 #' @return A list with factorization results using R and Rcpp function calls
@@ -29,6 +30,12 @@ opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
     data("iris")
     X <- data.matrix(iris[,1:4])
     y <- iris$Species
+  }
+  
+  if(is.null(y)) {
+    y <- rep(1, nrow(X))
+  } else {
+    stopifnot(length(y)==nrow(X))
   }
   
   # using R
