@@ -4,7 +4,7 @@ In the system terminal
 
 `cd ~`
 
-`git clone https://jugit.fz-juelich.de/inm7/aml/opnmfr`
+`git clone https://github.com/kaurao/opnmfR`
 
 
 In R terminal
@@ -21,7 +21,7 @@ In R terminal
 `nn = opnmfR_ranksel_perm(data.matrix(iris[,1:4]), 1:4, W0="nndsvd")`
 
 
-## Using gpuR
+## Using gpuR (non tested)
 
 Install gpuR following the instrctions here: 
 
@@ -31,7 +31,7 @@ I needed to do the following on ubuntu 16.04:
 
 `sudo apt-get install opencl-headers ocl-icd-opencl-dev`
 
-Get the corect `.deb` from here https://developer.nvidia.com/cuda-downloads and follow the associated instructions.
+Get the correct `.deb` from https://developer.nvidia.com/cuda-downloads and follow the associated instructions.
 
 Run `sudo R` and then `install.packages('gpuR')`
 
