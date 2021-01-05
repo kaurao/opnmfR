@@ -6,14 +6,10 @@
 #' for rank selection and initializatoin.
 #' @docType package
 #' @name opnmfR
+#' @import Rcpp NMF lpSolve aricode
 #' @useDynLib opnmfR, .registration=TRUE
 NULL
 #> NULL
-
-
-library(NMF)
-library(lpSolve)
-library(aricode)
 
 #' Simple test
 #'
