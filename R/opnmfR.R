@@ -1,25 +1,51 @@
 # partly based on `brainparts`: https://github.com/asotiras/brainparts
 
+#' opnmfR: A package for orthonormal projective non-negative matrix factorization
+#'
+#' This package provides functions for opnmf factorization using R code as well as Rcpp code as well as 
+#' for rank selection and initializatoin.
+#' @docType package
+#' @name opnmfR
+#' @useDynLib opnmfR, .registration=TRUE
+NULL
+#> NULL
+
+
 library(NMF)
 library(lpSolve)
 library(aricode)
 
-# test run on "iris" data
+#' Simple test
+#'
+#' @param X A matrix, if NULL the "iris" data is used (default NULL)
+#' @param r A number, rank to use (default 2)
+#' @param W0 A string or matrix for initialization (default "nndsvd")
+#' @return A list with factorization results using R and Rcpp function calls
+#' @examples
+#' result <- opnmfR_test()
 #' @export
-opnmfR_test <- function(r=2, W0="nndsvd", ...) {
-  data("iris")
+opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
+  if(is.null(X)) {
+    data("iris")
+    X <- data.matrix(iris[,1:4])
+    y <- iris$Species
+  }
+  
+  # using R
   cat("opnmfR test ")
   start_time <- Sys.time()
-  nn <- opnmfR(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
+  nn <- opnmfR(X, r=r, W0=W0, ...)
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
-  plot(nn$W[,1], nn$W[,2], col=iris$Species, xlab="Factor 1", ylab="Factor 2")
+  if(r>=2) {
+    plot(nn$W[,1], nn$W[,2], col=y, xlab="Factor 1", ylab="Factor 2")
+  }
   
-  # now using rcpp
+  # using rcpp
   cat("opnmfRcpp test ")
   start_time <- Sys.time()
-  nn <- opnmfRcpp(data.matrix(iris[,1:4]), r=r, W0=W0, ...)
+  nncpp <- opnmfRcpp(X, r=r, W0=W0, ...)
   end_time <- Sys.time()
   show(end_time - start_time)
   show(nn$H)
@@ -28,6 +54,8 @@ opnmfR_test <- function(r=2, W0="nndsvd", ...) {
   image(nn$W, main="W")
   image(nn$H, main="H")
   par(mfrow=c(1,1))
+  
+  return(list(nn=nn, nncpp=nncpp))
 }
 
 #' @export

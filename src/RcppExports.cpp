@@ -6,21 +6,21 @@
 
 using namespace Rcpp;
 
-// arma_opnmf
-Rcpp::List opnmfR_opnmfRcpp(const arma::mat & X, const arma::mat & W0, double tol, int maxiter, double eps, bool memsave);
+// opnmfR_opnmfRcpp
+Rcpp::List opnmfR_opnmfRcpp(const arma::mat& X, const arma::mat& W0, double tol, int maxiter, double eps, bool memsave);
 RcppExport SEXP _opnmfR_opnmfR_opnmfRcpp(SEXP XSEXP, SEXP W0SEXP, SEXP tolSEXP, SEXP maxiterSEXP, SEXP epsSEXP, SEXP memsaveSEXP) {
-  BEGIN_RCPP
-  Rcpp::RObject rcpp_result_gen;
-  Rcpp::RNGScope rcpp_rngScope_gen;
-  Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
-  Rcpp::traits::input_parameter< const arma::mat& >::type W0(W0SEXP);
-  Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-  Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
-  Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
-  Rcpp::traits::input_parameter< bool >::type memsave(memsaveSEXP);
-  rcpp_result_gen = Rcpp::wrap(opnmfR_opnmfRcpp(X, W0, tol, maxiter, eps, memsave));
-  return rcpp_result_gen;
-  END_RCPP
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat& >::type X(XSEXP);
+    Rcpp::traits::input_parameter< const arma::mat& >::type W0(W0SEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< int >::type maxiter(maxiterSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    Rcpp::traits::input_parameter< bool >::type memsave(memsaveSEXP);
+    rcpp_result_gen = Rcpp::wrap(opnmfR_opnmfRcpp(X, W0, tol, maxiter, eps, memsave));
+    return rcpp_result_gen;
+END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {

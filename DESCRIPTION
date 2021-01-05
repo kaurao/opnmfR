@@ -9,3 +9,4 @@ Description: Implements OPNMF in pure R and in c++ via RcppArmadillo. Also provi
 License: GPL-3
 Imports: Rcpp (>= 1.0.1)
 LinkingTo: Rcpp, RcppArmadillo
+RoxygenNote: 7.1.0
