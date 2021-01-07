@@ -13,4 +13,4 @@ Imports:
   lpSolve (>= 5.6.15), 
   aricode (>= 0.1.1)
 LinkingTo: Rcpp, RcppArmadillo
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
