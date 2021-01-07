@@ -2,8 +2,8 @@
 
 #' opnmfR: A package for orthonormal projective non-negative matrix factorization
 #'
-#' This package provides functions for opnmf factorization using R code as well as Rcpp code as well as 
-#' for rank selection and initializatoin.
+#' This package provides functions for opnmf factorization, initialization, and 
+#' rank election using R and Rcpp code
 #' @docType package
 #' @name opnmfR
 #' @import Rcpp NMF lpSolve aricode
@@ -61,6 +61,19 @@ opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
   return(list(nn=nn, nncpp=nncpp))
 }
 
+#' Simple rank selection test
+#'
+#' @param X A matrix, if NULL the "iris" data is used (default NULL)
+#' @param rs A vector with  the ranks  you wish to test for selection, 
+#' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
+#' @param W0 A string or matrix for initialization (default "nndsvd")
+#' @param nrepeat A number, the iterations of rank selection used (default 1)
+#' @return A list with rank selection outputs from \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and
+#' \code{opnmfR_ranksel_splithalf}
+#' @seealso \code{\link{opnmfR_ranksel_perm}}, \code{\link{opnmfR_ranksel_ooser}}, and 
+#' \code{\link{opnmfR_ranksel_splithalf}}
+#' @examples
+#' result <- opnmfR_test_ranksel()
 #' @export
 opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0=NULL, nrepeat=1) {
   if(is.null(X)) {
