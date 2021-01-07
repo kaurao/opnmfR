@@ -2,7 +2,7 @@
 % Please edit documentation in R/opnmfR.R
 \name{opnmfR_test}
 \alias{opnmfR_test}
-\title{Simple test}
+\title{opnmf test}
 \usage{
 opnmfR_test(X = NULL, y = NULL, r = 2, W0 = "nndsvd", ...)
 }
@@ -14,12 +14,14 @@ opnmfR_test(X = NULL, y = NULL, r = 2, W0 = "nndsvd", ...)
 \item{r}{A number, rank to use (default 2)}
 
 \item{W0}{A string or matrix for initialization (default "nndsvd")}
+
+\item{...}{additional parameters passed to \code{opnmfR} and \code{opnmfRcpp}}
 }
 \value{
 A list with factorization results using R and Rcpp function calls
 }
 \description{
-Simple test
+opnmf test
 }
 \examples{
 result <- opnmfR_test()

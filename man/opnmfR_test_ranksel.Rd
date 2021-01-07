@@ -2,9 +2,10 @@
 % Please edit documentation in R/opnmfR.R
 \name{opnmfR_test_ranksel}
 \alias{opnmfR_test_ranksel}
-\title{Simple rank selection test}
+\title{Rank selection test on user provided data
+Runs all three avilable rank selection methods.}
 \usage{
-opnmfR_test_ranksel(X = NULL, rs = NULL, W0 = NULL, nrepeat = 1)
+opnmfR_test_ranksel(X = NULL, rs = NULL, W0 = "nndsvd", nrepeat = 1)
 }
 \arguments{
 \item{X}{A matrix, if NULL the "iris" data is used (default NULL)}
@@ -14,14 +15,17 @@ if rs=NULL then \code{1:nrow(X)} is used (default NULL)}
 
 \item{W0}{A string or matrix for initialization (default "nndsvd")}
 
-\item{nrepeat}{A number, the iterations of rank selection used (default 1)}
+\item{nrepeat}{A number, number of iterations for rank selection, 
+i.e. number of permutations for \code{opnmfR_ranksel_perm} 
+and number of split-halves for \code{opnmfR_ranksel_splithalf} (default 1)}
 }
 \value{
 A list with rank selection outputs from \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and
 \code{opnmfR_ranksel_splithalf}
 }
 \description{
-Simple rank selection test
+Rank selection test on user provided data
+Runs all three avilable rank selection methods.
 }
 \examples{
 result <- opnmfR_test_ranksel()

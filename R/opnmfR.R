@@ -11,12 +11,13 @@
 NULL
 #> NULL
 
-#' Simple test
+#' opnmf test
 #'
 #' @param X A matrix, if NULL the "iris" data is used (default NULL)
 #' @param y A vector with class labels same length as nrow of X, if X=NULL then iris$Species is used (default NULL)
 #' @param r A number, rank to use (default 2)
 #' @param W0 A string or matrix for initialization (default "nndsvd")
+#' @param ... additional parameters passed to \code{opnmfR} and \code{opnmfRcpp}
 #' @return A list with factorization results using R and Rcpp function calls
 #' @examples
 #' result <- opnmfR_test()
@@ -61,13 +62,15 @@ opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
   return(list(nn=nn, nncpp=nncpp))
 }
 
-#' Simple rank selection test
-#'
+#' Rank selection test on user provided data
+#' Runs all three avilable rank selection methods.
 #' @param X A matrix, if NULL the "iris" data is used (default NULL)
 #' @param rs A vector with  the ranks  you wish to test for selection, 
 #' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
 #' @param W0 A string or matrix for initialization (default "nndsvd")
-#' @param nrepeat A number, the iterations of rank selection used (default 1)
+#' @param nrepeat A number, number of iterations for rank selection, 
+#' i.e. number of permutations for \code{opnmfR_ranksel_perm} 
+#' and number of split-halves for \code{opnmfR_ranksel_splithalf} (default 1)
 #' @return A list with rank selection outputs from \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and
 #' \code{opnmfR_ranksel_splithalf}
 #' @seealso \code{\link{opnmfR_ranksel_perm}}, \code{\link{opnmfR_ranksel_ooser}}, and 
@@ -75,7 +78,7 @@ opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
 #' @examples
 #' result <- opnmfR_test_ranksel()
 #' @export
-opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0=NULL, nrepeat=1) {
+opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0="nndsvd", nrepeat=1) {
   if(is.null(X)) {
     data("iris")
     cat("opnmfR ranksel ")
@@ -93,8 +96,25 @@ opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0=NULL, nrepeat=1) {
   return(list(perm=perm, ooser=ooser, splithalf=splithalf))
 }
 
+#' Rank selection test on synthetic data
+#' Runs all three avilable rank selection methods.
+#' @param n A number, number of rows (default 100)
+#' @param r A number, true rank (default 10)
+#' @param p A number, number of columns (default 100)
+#' @param rs A vector with  the ranks  you wish to test for selection, 
+#' if rs=NULL then \code{1:min(nrow(X), round(r+r*0.5))} is used (default NULL)
+#' @param W0 A string or matrix for initialization (default "nndsvd")
+#' @param nrepeat A number, number of iterations for rank selection, 
+#' i.e. number of permutations for \code{opnmfR_ranksel_perm} 
+#' and number of split-halves for \code{opnmfR_ranksel_splithalf} (default 1)
+#' @return A list with rank selection outputs from \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and
+#' \code{opnmfR_ranksel_splithalf}
+#' @seealso \code{\link{opnmfR_ranksel_perm}}, \code{\link{opnmfR_ranksel_ooser}}, and 
+#' \code{\link{opnmfR_ranksel_splithalf}}
+#' @examples
+#' result <- opnmfR_test_ranksel_synthetic()
 #' @export
-opnmfR_test_ranksel_synthetic <- function(n=100, r=10, p=100, rs=NULL, W0=NULL, nrepeat=1) {
+opnmfR_test_ranksel_synthetic <- function(n=100, r=10, p=100, rs=NULL, W0="nndsvd", nrepeat=1) {
   stopifnot(r <= 20) # keep the test computable
   stopifnot(r < n && r < p)
   X <- syntheticNMF(n,r,p)
