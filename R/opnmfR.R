@@ -545,7 +545,7 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE, rtrue=NA) {
       }
     }
     if(!is.na(rtrue)) abline(v=rtrue, lty=2, col="gray")
-    legend("topright", inset=c(-0.4,0), legend=measures_overlap, col=col_overlap, pch=1)
+    legend("topright", inset=c(-0.2,0), legend=measures_overlap, col=col_overlap, pch=1)
   }
   
   return(list(measures_avg=measures_avg, selected=selected))
