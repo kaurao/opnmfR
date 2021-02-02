@@ -65,7 +65,7 @@ opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
 #' Rank selection test on user provided data
 #' Runs all three avilable rank selection methods.
 #' @param X A matrix, if NULL the "iris" data is used (default NULL)
-#' @param rs A vector with  the ranks  you wish to test for selection, 
+#' @param rs A vector of ranks to test for selection, 
 #' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
 #' @param W0 A string or matrix for initialization (default "nndsvd")
 #' @param nrepeat A number, number of iterations for rank selection, 
@@ -155,6 +155,23 @@ opnmfR_compare_nmf <- function(n=100, r=10, p=100, nmfalgo="snmf/r", rs=NA) {
   return(list(sim_cosine=sim_cosine, ari=ari))
 }
 
+#' Orthogonal Projective Non-Negative Factorization
+#' utilising R C++ integration for improved computational speed. 
+#' Implementation is partly based on brainparts: https://github.com/asotiras/brainparts 
+#' @param X A matrix, rows are the number of features and columns are number of samples
+#' @param r A number, rank used for factorization.
+#' @param W0 A string or matrix for initialization (default NULL)
+#' @param max.iter A number, number of iterations before stopping (default 50000) 
+#' @param tol A number, convergence tolerance (default 1e-5)  
+#' @param memsave A logical, if TRUE update rule is modified to better deal with high
+#' dimensional data (default TRUE)
+#' @param eps A number, (default 1e-16)
+#' @return A list containing the approximation matrices W (m,r) and H (r,n) of input matrix
+#' X (m,n), the diffW is ..., the interation number at which a solution was found; 
+#' mse is the mean square reconstruction error claculated by \code{norm(X-(W %*% H), "F")}, 
+#' W0 is ..., the time required for factorization 
+#' @examples
+#'  result <- opnmfRcpp()
 #' @export
 opnmfRcpp <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16,...) {
   start_time <- Sys.time()
@@ -171,6 +188,23 @@ opnmfRcpp <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16
   return(list(W=post$W, H=post$H, diffW=res$diffW, iter=res$iter, mse=post$mse, W0=W0, time=tot_time))
 }
 
+#' Orthogonal Projective Non-Negative Factorization
+#' Implementation is partly based on brainparts: https://github.com/asotiras/brainparts 
+#' @param X A matrix, rows are the number of features and columns are number of samples
+#' @param r A number, rank used for factorization.
+#' @param W0 A string or matrix for initialization (default NULL)
+#' @param max.iter A number, number of iterations before stopping (default 50000) 
+#' @param tol A number, convergence tolerance (default 1e-5)  
+#' @param memsave A logical, if TRUE update rule is modified to better deal with high
+#' dimensional data (default TRUE)
+#' @param eps A number, (default 1e-16)
+#' @param use.gpu A logical, conduct factorizatio on GPUs using gpuR (default FALSE)
+#' @return A list containing the approximation matrices W (m,r) and H (r,n) of input matrix
+#' X (m,n), diffW is ..., the interation number at which a solution was found, 
+#' the mean square reconstruction error claculated by \code{norm(X-(W %*% H), "F")}, 
+#' W0 is ..., the time required for factorization 
+#' @examples
+#'  result <- opnmfR()
 #' @export
 opnmfR <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16, use.gpu=FALSE, ...) {
   # mem=FALSE is faster for large data
@@ -392,6 +426,26 @@ opnmfR_cosine_similarity <- function(x, y){
   xy / outer(x,y)
 }
 
+#' Rank selection based on split-half similarity measures (cosine, inner-product, cosine 
+#' correlation, and adjusted rand index)
+#' @param X A matrix, rows are the number of features and columns are number of samples
+#' @param rs A vector of ranks to test for selection, 
+#' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
+#' @param W0 A string or matrix for initialization (default NULL)
+#' @param use.rcpp A logical, use \link{\code{opnmfRcpp()}} (default TRUE)
+#' dimensional data (default TRUE)
+#' @param nrepeat A number, number of splits (default 1)
+#' @param similarity .... (deafault "inner")
+#' @param splits A list, provided when user wants to define split of sample. Indecies of 
+#' columns for one half of the split and rest are tanken as second split half (default NA)
+#' @param plots A logical, create a dot plot displaying the similarity measures for 
+#' ranks provided and indicating the highest value for each measure (default TRUE)
+#' @param seed the \code{set.seed} used to select the split-half (default NA)
+#' @param rtrue the true rank of the input data if known (default NA)
+#' @return A list containing the similarity measures for all methods, the time taken for selection, 
+#' the seed used for split-half, the selected rank based on the highest of each similarity measure
+#' @examples
+#'  result <- opnmfR_ranksel_splithalf()
 #' @export
 opnmfR_ranksel_splithalf <- function(X, rs, W0=NULL, use.rcpp=TRUE, nrepeat=1, similarity="inner", splits=NA, plots=TRUE, seed=NA, rtrue=NA, ...) {
   # we create folds over the columns
@@ -551,7 +605,24 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE, rtrue=NA) {
   return(list(measures_avg=measures_avg, selected=selected))
 }
 
-
+#' Permutation based rank selection
+#' @param X A matrix, rows are the number of features and columns are number of samples
+#' @param rs A vector of ranks to test for selection, 
+#' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
+#' @param W0 A string or matrix for initialization (default NULL)
+#' @param use.rcpp A logical, use \link{\code{opnmfRcpp()}} (default TRUE)
+#' dimensional data (default TRUE)
+#' @param nperm A number, number of permuatations conducted (default 1)
+#' @param plots A logical, create a dot plot displaying the similarity measures for 
+#' ranks provided and indicating the highest value for each measure (default TRUE)
+#' @param seed the \code{set.seed} used to select the split-half (default NA)
+#' @param rtrue the true rank of the input data if known (default NA)
+#' @return A list containing the reconstruction error of original and premutated data 
+#' claculated by \code{norm(X-(W %*% H), "F")}, the selected rank factorisation (W & H) 
+#' see \link{\code{opnmfRcpp()}}, time taken for rank selection; seed used for permutation of 
+#' input data matrix
+#' #' @examples
+#'  result <- opnmfR_ranksel_perm()
 #' @export
 opnmfR_ranksel_perm <- function(X, rs, W0=NULL, use.rcpp=TRUE, nperm=1, plots=TRUE, seed=NA, rtrue=NA, ...) {
   stopifnot(ncol(X)>=max(rs))
