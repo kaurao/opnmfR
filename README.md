@@ -1,4 +1,4 @@
-**Warning** *OpnmfR* is still under development and some parts are not completely tested.
+**Warning** *opnmfR* is still under development and some parts are not completely tested.
 
 # Installation
 
