@@ -1,4 +1,4 @@
-*Warning* OpnmfR is still under development and some parts are not completely tested.
+**Warning** *OpnmfR* is still under development and some parts are not completely tested.
 
 # Installation
 
@@ -15,7 +15,7 @@ In R terminal
 
 `devtools::install('~/opnmfr')`
 
-*Note* [Microsoft R Open](https://mran.microsoft.com/open) comes with MKL and can substantially improve runtime performance of Rcpp functions by using threads.
+**Note** [Microsoft R Open](https://mran.microsoft.com/open) comes with MKL and can substantially improve runtime performance of Rcpp functions by using threads.
 
 # Use it
 
