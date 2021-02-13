@@ -432,7 +432,7 @@ opnmfR_cosine_similarity <- function(x, y){
 #' @param rs A vector of ranks to test for selection, 
 #' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
 #' @param W0 A string or matrix for initialization (default NULL)
-#' @param use.rcpp A logical, use \link{\code{opnmfRcpp()}} (default TRUE)
+#' @param use.rcpp A logical, use \code{\link{opnmfRcpp()}} (default TRUE)
 #' dimensional data (default TRUE)
 #' @param nrepeat A number, number of splits (default 1)
 #' @param similarity .... (deafault "inner")
@@ -610,7 +610,7 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE, rtrue=NA) {
 #' @param rs A vector of ranks to test for selection, 
 #' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
 #' @param W0 A string or matrix for initialization (default NULL)
-#' @param use.rcpp A logical, use \link{\code{opnmfRcpp()}} (default TRUE)
+#' @param use.rcpp A logical, use \code{\link{opnmfRcpp()}} (default TRUE)
 #' dimensional data (default TRUE)
 #' @param nperm A number, number of permuatations conducted (default 1)
 #' @param plots A logical, create a dot plot displaying the similarity measures for 
@@ -619,7 +619,7 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE, rtrue=NA) {
 #' @param rtrue the true rank of the input data if known (default NA)
 #' @return A list containing the reconstruction error of original and premutated data 
 #' claculated by \code{norm(X-(W %*% H), "F")}, the selected rank factorisation (W & H) 
-#' see \link{\code{opnmfRcpp()}}, time taken for rank selection; seed used for permutation of 
+#' see \code{\link{opnmfRcpp()}}, time taken for rank selection; seed used for permutation of 
 #' input data matrix
 #' #' @examples
 #'  result <- opnmfR_ranksel_perm()
