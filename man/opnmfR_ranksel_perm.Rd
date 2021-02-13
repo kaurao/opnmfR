@@ -24,7 +24,7 @@ if rs=NULL then \code{1:nrow(X)} is used (default NULL)}
 
 \item{W0}{A string or matrix for initialization (default NULL)}
 
-\item{use.rcpp}{A logical, use \link{\code{opnmfRcpp()}} (default TRUE)
+\item{use.rcpp}{A logical, use \code{\link{opnmfRcpp()}} (default TRUE)
 dimensional data (default TRUE)}
 
 \item{nperm}{A number, number of permuatations conducted (default 1)}
