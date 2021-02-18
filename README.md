@@ -2,18 +2,12 @@
 
 # Installation
 
-In the system terminal
-
-`cd ~`
-
-`git clone https://github.com/kaurao/opnmfR`
-
-
 In R terminal
 
-`library(devtools)`
-
-`devtools::install('~/opnmfr')`
+```
+install.packages("remotes")
+remotes::install_github("kaurao/opnmfR")
+```
 
 **Note** [Microsoft R Open](https://mran.microsoft.com/open) comes with MKL and can substantially improve runtime performance of Rcpp functions by using threads.
 
