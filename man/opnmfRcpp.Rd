@@ -34,7 +34,9 @@ dimensional data (default TRUE)}
 \item{eps}{A number, (default 1e-16)}
 }
 \value{
-
+A list containing the approximation matrices W and H, of input matrix
+X; the interation number at which a solution was found; 
+the reconstruction error
 }
 \description{
 Orthogonal Projective Non-Negative Factorization

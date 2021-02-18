@@ -42,6 +42,6 @@ Runs all three avilable rank selection methods.
 result <- opnmfR_test_ranksel_synthetic()
 }
 \seealso{
-\code{\link{opnmfR_ranksel_perm}}, \code{\link{opnmfR_ranksel_ooser}}, and 
-\code{\link{opnmfR_ranksel_splithalf}}
+\code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and 
+\code{opnmfR_ranksel_splithalf}
 }

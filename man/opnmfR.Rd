@@ -36,7 +36,9 @@ dimensional data (default TRUE)}
 \item{use.gpu}{A logical, conduct factorizatio on GPUs using gpuR (default FALSE)}
 }
 \value{
-
+A list containing the approximation matrices W and H, of input matrix
+X; the interation number at which a solution was found; 
+the reconstruction error
 }
 \description{
 This package provides functions for opnmf factorization, initialization, and 
