@@ -24,7 +24,7 @@ if rs=NULL then \code{1:nrow(X)} is used (default NULL)}
 
 \item{W0}{A string or matrix for initialization (default NULL)}
 
-\item{use.rcpp}{A logical, use \code{\link{opnmfRcpp()}} (default TRUE)
+\item{use.rcpp}{A logical, use \code{opnmfRcpp()} (default TRUE)
 dimensional data (default TRUE)}
 
 \item{nperm}{A number, number of permuatations conducted (default 1)}
@@ -37,7 +37,12 @@ ranks provided and indicating the highest value for each measure (default TRUE)}
 \item{rtrue}{the true rank of the input data if known (default NA)}
 }
 \value{
-
+A list containing the approximation matrices W and H, of input matrix
+X; the interation number at which a solution was found; 
+the reconstruction error, time taken for rank selection; the seed used for permutation of 
+input data matrix
+#' @examples
+ result <- opnmfR_ranksel_perm()
 }
 \description{
 Permutation based rank selection

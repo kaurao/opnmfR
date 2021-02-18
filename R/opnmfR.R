@@ -73,8 +73,8 @@ opnmfR_test <- function(X=NULL, y=NULL, r=2, W0="nndsvd", ...) {
 #' and number of split-halves for \code{opnmfR_ranksel_splithalf} (default 1)
 #' @return A list with rank selection outputs from \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and
 #' \code{opnmfR_ranksel_splithalf}
-#' @seealso \code{\link{opnmfR_ranksel_perm}}, \code{\link{opnmfR_ranksel_ooser}}, and 
-#' \code{\link{opnmfR_ranksel_splithalf}}
+#' @seealso \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and 
+#' \code{opnmfR_ranksel_splithalf}
 #' @examples
 #' result <- opnmfR_test_ranksel()
 #' @export
@@ -109,8 +109,8 @@ opnmfR_test_ranksel <- function(X=NULL, rs=NULL, W0="nndsvd", nrepeat=1) {
 #' and number of split-halves for \code{opnmfR_ranksel_splithalf} (default 1)
 #' @return A list with rank selection outputs from \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and
 #' \code{opnmfR_ranksel_splithalf}
-#' @seealso \code{\link{opnmfR_ranksel_perm}}, \code{\link{opnmfR_ranksel_ooser}}, and 
-#' \code{\link{opnmfR_ranksel_splithalf}}
+#' @seealso \code{opnmfR_ranksel_perm}, \code{opnmfR_ranksel_ooser}, and 
+#' \code{opnmfR_ranksel_splithalf}
 #' @examples
 #' result <- opnmfR_test_ranksel_synthetic()
 #' @export
@@ -166,10 +166,9 @@ opnmfR_compare_nmf <- function(n=100, r=10, p=100, nmfalgo="snmf/r", rs=NA) {
 #' @param memsave A logical, if TRUE update rule is modified to better deal with high
 #' dimensional data (default TRUE)
 #' @param eps A number, (default 1e-16)
-#' @return A list containing the approximation matrices W (m,r) and H (r,n) of input matrix
-#' X (m,n), the diffW is ..., the interation number at which a solution was found; 
-#' mse is the mean square reconstruction error claculated by \code{norm(X-(W %*% H), "F")}, 
-#' W0 is ..., the time required for factorization 
+#' @return A list containing the approximation matrices W and H, of input matrix
+#' X; the interation number at which a solution was found; 
+#' the reconstruction error 
 #' @examples
 #'  result <- opnmfRcpp()
 #' @export
@@ -199,10 +198,9 @@ opnmfRcpp <- function(X,r,W0=NULL,max.iter=50000,tol=1e-5,memsave=TRUE,eps=1e-16
 #' dimensional data (default TRUE)
 #' @param eps A number, (default 1e-16)
 #' @param use.gpu A logical, conduct factorizatio on GPUs using gpuR (default FALSE)
-#' @return A list containing the approximation matrices W (m,r) and H (r,n) of input matrix
-#' X (m,n), diffW is ..., the interation number at which a solution was found, 
-#' the mean square reconstruction error claculated by \code{norm(X-(W %*% H), "F")}, 
-#' W0 is ..., the time required for factorization 
+#' @return A list containing the approximation matrices W and H, of input matrix
+#' X; the interation number at which a solution was found; 
+#' the reconstruction error
 #' @examples
 #'  result <- opnmfR()
 #' @export
@@ -432,7 +430,7 @@ opnmfR_cosine_similarity <- function(x, y){
 #' @param rs A vector of ranks to test for selection, 
 #' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
 #' @param W0 A string or matrix for initialization (default NULL)
-#' @param use.rcpp A logical, use \code{\link{opnmfRcpp()}} (default TRUE)
+#' @param use.rcpp A logical, use \code{opnmfRcpp()} (default TRUE)
 #' dimensional data (default TRUE)
 #' @param nrepeat A number, number of splits (default 1)
 #' @param similarity .... (deafault "inner")
@@ -610,16 +608,16 @@ opnmfR_ranksel_splithalf_select <- function(perf, rs, plots=TRUE, rtrue=NA) {
 #' @param rs A vector of ranks to test for selection, 
 #' if rs=NULL then \code{1:nrow(X)} is used (default NULL)
 #' @param W0 A string or matrix for initialization (default NULL)
-#' @param use.rcpp A logical, use \code{\link{opnmfRcpp()}} (default TRUE)
+#' @param use.rcpp A logical, use \code{opnmfRcpp()} (default TRUE)
 #' dimensional data (default TRUE)
 #' @param nperm A number, number of permuatations conducted (default 1)
 #' @param plots A logical, create a dot plot displaying the similarity measures for 
 #' ranks provided and indicating the highest value for each measure (default TRUE)
 #' @param seed the \code{set.seed} used to select the split-half (default NA)
 #' @param rtrue the true rank of the input data if known (default NA)
-#' @return A list containing the reconstruction error of original and premutated data 
-#' claculated by \code{norm(X-(W %*% H), "F")}, the selected rank factorisation (W & H) 
-#' see \code{\link{opnmfRcpp()}}, time taken for rank selection; seed used for permutation of 
+#' @return A list containing the approximation matrices W and H, of input matrix
+#' X; the interation number at which a solution was found; 
+#' the reconstruction error, time taken for rank selection; the seed used for permutation of 
 #' input data matrix
 #' #' @examples
 #'  result <- opnmfR_ranksel_perm()
