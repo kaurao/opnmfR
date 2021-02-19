@@ -31,10 +31,7 @@ C. Boutsidis, E. Gallopoulos, SVD based initialization: a head start for nonnega
 
 *Varikuti, Deepthi P., Sarah Genon, Aristeidis Sotiras, Holger Schwender, Felix Hoffstaedter, Kaustubh R. Patil, Christiane Jockwitz, Svenja Caspers, Susanne Moebus, Katrin Amunts, Christos Davatzikos, and Simon Eickhoff. Evaluation of non-negative matrix factorization of grey matter in age prediction. NeuroImage 173 (2018): 394-410.
 }
-opnmf
-nmf
-nnmf
-matrix factorization
+
 
 \keyword{ package }
 \seealso{
